@@ -2604,20 +2604,42 @@ pub fn get_dst_align_rgba() -> usize {
     1
 }
 
+// Diagnostico AdvirDesk: acrescenta uma linha a %TEMP%dvirdesk-diag.log (nunca falha).
+fn advirdesk_diag(msg: &str) {
+    use std::io::Write;
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(std::env::temp_dir().join("advirdesk-diag.log"))
+    {
+        let _ = writeln!(f, "rust pid={} {}", std::process::id(), msg);
+    }
+}
+
 pub fn read_custom_client(config: &str) {
+    advirdesk_diag(&format!("read_custom_client: inicio, len={}", config.len()));
+    // libsodium tem de estar inicializado antes de qualquer verificacao de assinatura.
+    let _ = hbb_common::sodiumoxide::init();
+    advirdesk_diag("read_custom_client: sodium init feito");
     let Ok(data) = decode64(config) else {
+        advirdesk_diag("read_custom_client: decode64 falhou");
         log::error!("Failed to decode custom client config");
         return;
     };
+    advirdesk_diag("read_custom_client: decode64 ok");
     const KEY: &str = "beIoGebAM7h665xfj+rbDpiXo/cw2ObHD/Oa9Ac/4uQ=";
     let Some(pk) = get_rs_pk(KEY) else {
+        advirdesk_diag("read_custom_client: get_rs_pk falhou");
         log::error!("Failed to parse public key of custom client");
         return;
     };
+    advirdesk_diag("read_custom_client: get_rs_pk ok; a verificar assinatura");
     let Ok(data) = sign::verify(&data, &pk) else {
+        advirdesk_diag("read_custom_client: assinatura invalida");
         log::error!("Failed to dec custom client config");
         return;
     };
+    advirdesk_diag("read_custom_client: assinatura ok");
     let Ok(mut data) =
         serde_json::from_slice::<std::collections::HashMap<String, serde_json::Value>>(&data)
     else {
