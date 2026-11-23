@@ -1,0 +1,22 @@
+{
+  "_nota": "Políticas da app dos técnicos (Fase 2/3). Gerar custom.txt com: python client/policy.py build. Chaves validadas contra RustDesk 1.5.3 (libs/base/src/config/keys.rs).",
+  "app-name": "AdvirDesk",
+  "override-settings": {
+    "custom-rendezvous-server": "<RENDEZVOUS_SERVER>",
+    "relay-server": "<RENDEZVOUS_SERVER>",
+    "api-server": "<API_SERVER>",
+    "key": "<RS_PUB_KEY>",
+    "allow-auto-update": "N",
+    "enable-check-update": "N",
+    "hide-network-settings": "Y",
+    "hide-server-settings": "Y",
+    "hide-proxy-settings": "Y",
+    "hide-websocket-settings": "Y",
+    "enable-terminal": "Y",
+    "enable-file-transfer": "Y"
+  },
+  "default-settings": {
+    "allow-remote-config-modification": "N",
+    "direct-server": "N"
+  }
+}
