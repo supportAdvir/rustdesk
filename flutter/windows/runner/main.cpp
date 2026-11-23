@@ -30,8 +30,8 @@ static void diag(const char* msg) {
   wchar_t tmp[MAX_PATH];
   if (!GetTempPathW(MAX_PATH, tmp)) return;
   std::wstring path = std::wstring(tmp) + L"advirdesk-diag.log";
-  FILE* f = _wfopen(path.c_str(), L"a");
-  if (!f) return;
+  FILE* f = nullptr;
+  if (_wfopen_s(&f, path.c_str(), L"a") != 0 || !f) return;
   SYSTEMTIME st;
   GetLocalTime(&st);
   fprintf(f, "%02d:%02d:%02d.%03d pid=%lu %s\n", st.wHour, st.wMinute, st.wSecond,
