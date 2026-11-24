@@ -279,3 +279,5 @@ jobs:
         name: AdvirDesk-${{ matrix.variant.name }}
         path: out
         if-no-files-found: error
+
+# Build 2026-11-24: sem printer_driver_adapter.dll (ver passo "Remover o driver de impressora remota").
