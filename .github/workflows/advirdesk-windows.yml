@@ -248,6 +248,15 @@ jobs:
       with:
         toolchain: ${{ env.SCITER_RUST_VERSION }}
         targets: x86_64-pc-windows-msvc
+    # O printer_driver_adapter.dll (componente fechado da RustDesk) chama ExitProcess(3) quando
+    # encontra um custom.txt que nao foi assinado pela chave oficial da RustDesk. Sem ele a app
+    # abre normalmente; so se perde a impressao remota (desligada nas nossas politicas).
+    - name: Remover o driver de impressora remota (incompativel com politicas proprias)
+      shell: bash
+      run: |
+        rm -f rustdesk/printer_driver_adapter.dll
+        rm -rf rustdesk/drivers
+        ls rustdesk | head -50
     - name: Gerar custom.txt assinado (politicas ao lado do executavel)
       shell: bash
       run: |

@@ -6,10 +6,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <csignal>
-#include <cstdio>
-#include <cstdlib>
-#include <exception>
 
 #include "win32_desktop.h"
 #include "flutter_window.h"
@@ -25,47 +21,16 @@ const std::vector<std::string> parameters_white_list = {"--install", "--cm"};
 
 const wchar_t* getWindowClassName();
 
-// --- Diagnostico de arranque (AdvirDesk): escreve %TEMP%\advirdesk-diag.log ---
-static void diag(const char* msg) {
-  wchar_t tmp[MAX_PATH];
-  if (!GetTempPathW(MAX_PATH, tmp)) return;
-  std::wstring path = std::wstring(tmp) + L"advirdesk-diag.log";
-  FILE* f = nullptr;
-  if (_wfopen_s(&f, path.c_str(), L"a") != 0 || !f) return;
-  SYSTEMTIME st;
-  GetLocalTime(&st);
-  fprintf(f, "%02d:%02d:%02d.%03d pid=%lu %s\n", st.wHour, st.wMinute, st.wSecond,
-          st.wMilliseconds, GetCurrentProcessId(), msg);
-  fclose(f);
-}
-static LONG WINAPI diag_exception_filter(EXCEPTION_POINTERS* e) {
-  char b[200];
-  snprintf(b, sizeof b, "EXCECAO NAO TRATADA code=0x%08lX addr=%p",
-           e->ExceptionRecord->ExceptionCode, e->ExceptionRecord->ExceptionAddress);
-  diag(b);
-  return EXCEPTION_CONTINUE_SEARCH;
-}
-static void diag_terminate() { diag("std::terminate (excecao C++ nao tratada)"); std::abort(); }
-static void diag_sigabrt(int) { diag("SIGABRT: abort() chamado"); _exit(3); }
-static void diag_atexit() { diag("atexit: o processo vai terminar (exit/ExitProcess normal)"); }
-
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command)
 {
-  diag("wWinMain: inicio");
-  SetUnhandledExceptionFilter(diag_exception_filter);
-  std::set_terminate(diag_terminate);
-  signal(SIGABRT, diag_sigabrt);
-  atexit(diag_atexit);
   if (auto result = service_control::HandleCommand(command_line)) {
-    diag("service_control tratou o comando");
     return static_cast<int>(*result);
   }
   HINSTANCE hInstance = LoadLibraryA("librustdesk.dll");
   if (!hInstance)
   {
     std::cout << "Failed to load librustdesk.dll." << std::endl;
-    diag("FALHA: LoadLibrary(librustdesk.dll)");
     return EXIT_FAILURE;
   }
   FUNC_RUSTDESK_CORE_MAIN rustdesk_core_main =
@@ -89,10 +54,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     argument.erase(argument.find_last_not_of(" \n\r\t"));
   }
 
-  diag("librustdesk.dll carregada; a chamar core_main");
   int args_len = 0;
   char** c_args = rustdesk_core_main(&args_len);
-  diag(c_args ? "core_main devolveu argumentos (segue para a interface)" : "core_main devolveu NULL (nao abre interface)");
   if (!c_args)
   {
     std::string args_str = "";
@@ -132,7 +95,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   // Uri links dispatch
   HWND hwnd = ::FindWindowW(getWindowClassName(), app_name.c_str());
-  diag(hwnd ? "ja existe uma janela com este nome (instancia anterior)" : "nenhuma janela previa");
   if (hwnd != NULL) {
     // Allow multiple flutter instances when being executed by parameters
     // contained in whitelists.
@@ -217,12 +179,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   } else {
     window_title = app_name;
   }
-  diag("a criar a janela Flutter");
   if (!window.CreateAndShow(window_title, origin, size, !is_cm_page)) {
-      diag("FALHA: CreateAndShow devolveu false");
       return EXIT_FAILURE;
   }
-  diag("janela criada; entra no ciclo de mensagens");
   window.SetQuitOnClose(true);
 
   ::MSG msg;
@@ -232,7 +191,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     ::DispatchMessage(&msg);
   }
 
-  diag("ciclo de mensagens terminou");
   ::CoUninitialize();
   return EXIT_SUCCESS;
 }
