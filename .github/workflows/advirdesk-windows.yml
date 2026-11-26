@@ -220,10 +220,14 @@ jobs:
       fail-fast: false
       matrix:
         variant:
+        # exe: nome do programa dentro do pacote. Para variantes INSTALAVEIS tem de ser
+        # "<app-name>.exe" (o instalador copia a pasta tal como esta e procura esse ficheiro).
         - name: Tecnicos
           settings: advirdesk/settings-tecnicos.json
+          exe: AdvirDesk.exe
         - name: SuporteRapido
           settings: advirdesk/settings-cliente-suporte-rapido.json
+          exe: rustdesk.exe
     env:
       RENDEZVOUS_SERVER: suporte.advir.pt
       API_SERVER: https://suporte.advir.pt
@@ -263,13 +267,20 @@ jobs:
         test -n "$POLICY_SIGNING_KEY" || { echo 'Falta o secret POLICY_SIGNING_KEY'; exit 1; }
         openssl version
         python advirdesk/policy.py build --settings "${{ matrix.variant.settings }}" --out rustdesk/custom.txt
+    - name: Nome do executavel igual ao nome da app (o instalador procura <app>.exe)
+      shell: bash
+      run: |
+        if [ "${{ matrix.variant.exe }}" != "rustdesk.exe" ]; then
+          mv rustdesk/rustdesk.exe "rustdesk/${{ matrix.variant.exe }}"
+        fi
+        ls rustdesk | head -20
     - name: Empacotar executavel portatil
       shell: bash
       run: |
         sed -i '/dpiAware/d' res/manifest.xml
         pushd ./libs/portable
         pip3 install -r requirements.txt
-        python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
+        python3 ./generate.py -f ../../rustdesk/ -o . -e "../../rustdesk/${{ matrix.variant.exe }}"
         popd
         mkdir -p out
         mv ./target/release/rustdesk-portable-packer.exe "./out/AdvirDesk-${{ matrix.variant.name }}.exe"
